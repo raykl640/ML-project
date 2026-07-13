@@ -22,9 +22,7 @@ st.set_page_config(
     layout="wide",
 )
 
-ACCENT = "#2f6f4f"
-ACCENT_DARK = "#1f2937"
-MUTED = "#6b7280"
+ACCENT = "#3a7d5c"
 
 st.markdown(f"""
 <style>
@@ -44,27 +42,29 @@ st.markdown(f"""
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: {MUTED};
+        color: var(--text-color);
+        opacity: 0.6;
     }}
     .section-header h2 {{
         margin: 0.15rem 0 0 0;
         font-weight: 700;
-        color: {ACCENT_DARK};
+        color: var(--text-color);
     }}
 
     div[data-testid="stMetric"] {{
-        background: #f8f9fa;
-        border: 1px solid #e5e7eb;
+        background: var(--secondary-background-color);
+        border: 1px solid rgba(128, 128, 128, 0.25);
         border-radius: 8px;
         padding: 0.8rem 1rem;
     }}
     div[data-testid="stMetricValue"] {{
         font-size: 1.5rem;
         font-weight: 600;
-        color: {ACCENT_DARK};
+        color: var(--text-color);
     }}
     div[data-testid="stMetricLabel"] {{
-        color: {MUTED};
+        color: var(--text-color);
+        opacity: 0.7;
     }}
 </style>
 """, unsafe_allow_html=True)
