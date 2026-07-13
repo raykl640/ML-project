@@ -1,6 +1,6 @@
 """
 Crop Recommendation System — Team Presentation Dashboard
-One tab per teammate's section of the project.
+One section per teammate's part of the pipeline.
 """
 
 import joblib
@@ -14,45 +14,120 @@ from sklearn.metrics import (
     confusion_matrix, classification_report
 )
 
-# ----------------------------------------------------------------------------
-# Page config & light styling
-# ----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Crop Recommendation System",
-    page_icon="🌱",
     layout="wide",
 )
 
+# Palette — muted earth tones, one hue per pipeline stage
+COLORS = {
+    "forest":  "#3A4A38",
+    "slate":   "#47607C",
+    "plum":    "#6B4C63",
+    "ochre":   "#96702F",
+    "sage":    "#4B6350",
+    "teal":    "#3F6B63",
+    "rust":    "#8B4A3B",
+    "deepteal": "#2E5266",
+}
+
+BANNER_COLORS = {
+    "overview":  COLORS["forest"],
+    "cleaning":  COLORS["slate"],
+    "eda":       COLORS["plum"],
+    "features":  COLORS["ochre"],
+    "builder1":  COLORS["sage"],
+    "builder2":  COLORS["teal"],
+    "eval":      COLORS["rust"],
+    "demo":      COLORS["deepteal"],
+}
+
 st.markdown("""
 <style>
-    .section-banner {
-        padding: 0.9rem 1.2rem;
-        border-radius: 10px;
-        margin-bottom: 1.2rem;
-        color: white;
-    }
-    .role-tag {
-        font-size: 0.8rem;
-        opacity: 0.85;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-    .section-banner h2 { margin: 0.1rem 0 0.2rem 0; color: white; }
-    div[data-testid="stMetricValue"] { font-size: 1.6rem; }
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.stApp {
+    background-color: #F4F5EF;
+}
+
+h1, h2, h3 {
+    font-family: 'Fraunces', serif;
+    color: #232B21;
+}
+
+.section-banner {
+    padding: 1.3rem 1.6rem;
+    border-radius: 6px;
+    margin-bottom: 1.6rem;
+    color: #F6F7F1;
+    border-left: 4px solid rgba(255,255,255,0.35);
+}
+.section-banner .role-tag {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+.section-banner h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    margin: 0.3rem 0 0 0;
+    color: #FBFCF7;
+    font-size: 1.55rem;
+}
+
+.insight-box {
+    background: #FFFFFF;
+    border: 1px solid #DDE1D6;
+    border-left: 3px solid #4B6350;
+    border-radius: 5px;
+    padding: 1.1rem 1.4rem;
+    margin-top: 0.5rem;
+}
+.insight-box p {
+    margin: 0 0 0.5rem 0;
+    color: #3A4235;
+    line-height: 1.6;
+    font-size: 0.94rem;
+}
+.insight-box p:last-child { margin-bottom: 0; }
+.insight-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #4B6350;
+    margin-bottom: 0.55rem;
+}
+
+div[data-testid="stMetricValue"] {
+    font-family: 'Fraunces', serif;
+    font-size: 1.65rem;
+    color: #232B21;
+}
+div[data-testid="stMetricLabel"] {
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    color: #5B6656;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #ECEEE4;
+    border-right: 1px solid #DBDFD3;
+}
+section[data-testid="stSidebar"] h1 {
+    font-size: 1.25rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
-BANNER_COLORS = {
-    "overview":  "#2f6f4f",
-    "cleaning":  "#3a6ea5",
-    "eda":       "#8a4fa3",
-    "features":  "#c07d1e",
-    "builder1":  "#2f8f6f",
-    "builder2":  "#2f8f6f",
-    "eval":      "#b04a4a",
-    "demo":      "#1e6091",
-}
 
 def banner(key, role, title):
     st.markdown(
@@ -61,13 +136,19 @@ def banner(key, role, title):
         unsafe_allow_html=True,
     )
 
-# ----------------------------------------------------------------------------
-# Cached loaders
-# ----------------------------------------------------------------------------
+
+def insight(label, *paragraphs):
+    body = "".join(f"<p>{p}</p>" for p in paragraphs)
+    st.markdown(
+        f"""<div class="insight-box"><span class="insight-label">{label}</span>{body}</div>""",
+        unsafe_allow_html=True,
+    )
+
+
 @st.cache_data
 def load_data():
-    df = pd.read_csv("data/crop_recommendation_cleaned.csv")
-    return df
+    return pd.read_csv("data/crop_recommendation_cleaned.csv")
+
 
 @st.cache_resource
 def load_models():
@@ -91,6 +172,7 @@ def load_models():
         "y_train": y_train, "y_test": y_test,
     }
 
+
 df = load_data()
 bundle = load_models()
 encoder = bundle["encoder"]
@@ -99,6 +181,7 @@ models = bundle["models"]
 X_test, y_test = bundle["X_test"], bundle["y_test"]
 
 NUMERIC_COLS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
+
 
 @st.cache_data
 def compute_metrics():
@@ -114,13 +197,20 @@ def compute_metrics():
         })
     return pd.DataFrame(rows).sort_values("F1 (macro)", ascending=False).reset_index(drop=True)
 
+
 metrics_df = compute_metrics()
 
-# ----------------------------------------------------------------------------
 # Sidebar navigation
-# ----------------------------------------------------------------------------
-st.sidebar.title("🌱 Crop Recommendation")
+st.sidebar.title("Crop Recommendation")
 st.sidebar.caption("ML Project — Team Presentation")
+st.sidebar.markdown(
+    f'<div style="height:5px;border-radius:3px;margin:0.3rem 0 1.1rem 0;'
+    f'background:linear-gradient(90deg,{COLORS["forest"]},{COLORS["slate"]},'
+    f'{COLORS["plum"]},{COLORS["ochre"]},{COLORS["sage"]},{COLORS["teal"]},'
+    f'{COLORS["rust"]},{COLORS["deepteal"]});"></div>',
+    unsafe_allow_html=True,
+)
+
 section = st.sidebar.radio(
     "Project section",
     [
@@ -135,19 +225,17 @@ section = st.sidebar.radio(
     ],
 )
 st.sidebar.markdown("---")
-st.sidebar.markdown(
-    "Each section reflects one teammate's part of the pipeline — "
+st.sidebar.caption(
+    "Each section reflects one teammate's part of the pipeline, "
     "from raw data to a deployed prediction demo."
 )
 
-# ============================================================================
-# OVERVIEW
-# ============================================================================
+# Overview
 if section == "Overview":
     banner("overview", "Project", "Machine Learning-Based Crop Recommendation System")
     st.write(
-        "Build a machine learning model that recommends the most suitable crop "
-        "based on soil nutrients and environmental conditions."
+        "Recommends the most suitable crop for a plot of land based on soil "
+        "nutrients and environmental conditions."
     )
 
     c1, c2, c3, c4 = st.columns(4)
@@ -175,11 +263,8 @@ if section == "Overview":
         }),
         hide_index=True, width='stretch',
     )
-    st.info("Use the sidebar to jump between sections.")
 
-# ============================================================================
-# 1. DATA CLEANING
-# ============================================================================
+# Data cleaning
 elif section == "1 · Data Cleaning":
     banner("cleaning", "Data Lead", "Data Cleaning")
 
@@ -196,24 +281,21 @@ elif section == "1 · Data Cleaning":
         st.markdown("**Negative / invalid value check**")
         st.dataframe((df[NUMERIC_COLS] < 0).sum().rename("negative count"), width='stretch')
 
-    st.markdown("**Duplicate rows:** " + str(df.duplicated().sum()))
+    st.markdown(f"**Duplicate rows:** {df.duplicated().sum()}")
 
     st.markdown("**Sample of cleaned data**")
     st.dataframe(df.head(10), width='stretch')
 
-    st.markdown("""
-    #### Summary
-    - Dataset loaded successfully
-    - No missing values detected
-    - No duplicate records found
-    - Data types verified and appropriate
-    - Numeric features checked for invalid (negative) values
-    - Cleaned data exported as `crop_cleaned.csv`
-    """)
+    insight(
+        "Summary",
+        "The dataset loaded cleanly, with no missing values and no duplicate "
+        "records across any of the rows.",
+        "Data types matched the expected schema, and all numeric fields fell "
+        "within valid, non-negative ranges. The cleaned file was exported as "
+        "<code>crop_cleaned.csv</code>.",
+    )
 
-# ============================================================================
-# 2. EDA
-# ============================================================================
+# EDA
 elif section == "2 · EDA & Visualization":
     banner("eda", "EDA / Visualization Lead", "Exploratory Data Analysis")
 
@@ -234,14 +316,13 @@ elif section == "2 · EDA & Visualization":
 
     if chart == "Crop distribution":
         fig, ax = plt.subplots(figsize=(14, 5))
-        sns.countplot(x="label", data=df, ax=ax, color="#2f8f6f")
+        sns.countplot(x="label", data=df, ax=ax, color=COLORS["sage"])
         ax.set_title("Distribution of Crop Types")
         plt.xticks(rotation=90)
         st.pyplot(fig)
-        st.caption("The dataset is balanced across crop classes, reducing the risk of model bias.")
 
     elif chart == "Numeric feature distributions":
-        fig = df[NUMERIC_COLS].hist(figsize=(14, 8), bins=20, color="#2f8f6f")
+        df[NUMERIC_COLS].hist(figsize=(14, 8), bins=20, color=COLORS["sage"])
         plt.tight_layout()
         st.pyplot(plt.gcf())
 
@@ -280,39 +361,39 @@ elif section == "2 · EDA & Visualization":
     elif chart == "Total NPK distribution":
         npk = df["N"] + df["P"] + df["K"]
         fig, ax = plt.subplots(figsize=(8, 5))
-        sns.histplot(npk, bins=20, kde=True, ax=ax, color="#c07d1e")
+        sns.histplot(npk, bins=20, kde=True, ax=ax, color=COLORS["ochre"])
         ax.set_title("Distribution of Total NPK")
         st.pyplot(fig)
 
     elif chart == "Average NPK per crop":
         npk_crop = (df["N"] + df["P"] + df["K"]).groupby(df["label"]).mean().sort_values()
         fig, ax = plt.subplots(figsize=(14, 5))
-        npk_crop.plot(kind="bar", ax=ax, color="#c07d1e")
+        npk_crop.plot(kind="bar", ax=ax, color=COLORS["ochre"])
         ax.set_title("Average Total NPK by Crop")
         st.pyplot(fig)
 
-    st.markdown("""
-    #### Key takeaways
-    - Dataset is balanced across all 22 crop classes
-    - Soil nutrients (N, P, K) vary considerably across crop types
-    - Environmental factors (rainfall, temperature, humidity) show distinct distributions per crop
-    - Some environmental variables are moderately correlated
-    """)
+    insight(
+        "Key takeaways",
+        "Crop classes are evenly represented, which lowers the risk of the "
+        "model favoring any single label.",
+        "Soil nutrients and environmental conditions vary meaningfully across "
+        "crop types, and a handful of the environmental variables show "
+        "moderate correlation with one another.",
+    )
 
-# ============================================================================
-# 3. FEATURE ENGINEERING
-# ============================================================================
+# Feature engineering
 elif section == "3 · Feature Engineering":
     banner("features", "Feature Engineering Lead", "Feature Engineering & Data Preparation")
 
-    st.markdown("""
-    This stage prepares the cleaned dataset for modeling:
-    - Separate features (`X`) and target (`label`)
-    - Encode crop labels with `LabelEncoder`
-    - Engineer two new features: `NPK_sum = N + P + K` and `NPK_ratio = N / (P + K + 1)`
-    - Scale all 9 features with `StandardScaler`
-    - Split into train/test sets (80/20, stratified by crop)
-    """)
+    st.markdown(
+        "This stage prepares the cleaned dataset for modeling:\n"
+        "- Separate features (`X`) and target (`label`)\n"
+        "- Encode crop labels with `LabelEncoder`\n"
+        "- Engineer two new features: `NPK_sum = N + P + K` and "
+        "`NPK_ratio = N / (P + K + 1)`\n"
+        "- Scale all 9 features with `StandardScaler`\n"
+        "- Split into train/test sets (80/20, stratified by crop)"
+    )
 
     X_train = bundle["X_train"]
     c1, c2, c3 = st.columns(3)
@@ -329,11 +410,13 @@ elif section == "3 · Feature Engineering":
     st.markdown("**Example of engineered features:**")
     st.dataframe(demo, width='stretch')
 
-    st.success("Outputs shared with the team: `scaler.pkl`, `label_encoder.pkl`, `train_test.pkl`")
+    insight(
+        "Outputs shared with the team",
+        "<code>scaler.pkl</code>, <code>label_encoder.pkl</code>, and "
+        "<code>train_test.pkl</code>.",
+    )
 
-# ============================================================================
-# 4. MODEL BUILDER 1
-# ============================================================================
+# Model builder 1
 elif section == "4 · Model Builder #1 (RF & GB)":
     banner("builder1", "Model Builder #1", "Random Forest & Gradient Boosting")
 
@@ -353,9 +436,7 @@ elif section == "4 · Model Builder #1 (RF & GB)":
         st.write("**Random Forest:**", models["Random Forest"].get_params())
         st.write("**Gradient Boosting:**", models["Gradient Boosting"].get_params())
 
-# ============================================================================
-# 5. MODEL BUILDER 2
-# ============================================================================
+# Model builder 2
 elif section == "5 · Model Builder #2 (SVM/KNN + Ensembles)":
     banner("builder2", "Model Builder #2", "SVM / KNN + Ensemble Assembly")
 
@@ -378,13 +459,11 @@ elif section == "5 · Model Builder #2 (SVM/KNN + Ensembles)":
     st.markdown("#### Voting vs Stacking vs individual base learners")
     fig, ax = plt.subplots(figsize=(9, 4))
     plot_df = metrics_df.set_index("Model")["F1 (macro)"].sort_values()
-    plot_df.plot(kind="barh", ax=ax, color="#2f8f6f")
+    plot_df.plot(kind="barh", ax=ax, color=COLORS["teal"])
     ax.set_xlabel("F1 (macro)")
     st.pyplot(fig)
 
-# ============================================================================
-# 6. EVALUATION
-# ============================================================================
+# Evaluation
 elif section == "6 · Evaluation":
     banner("eval", "Evaluation Lead", "Model Evaluation")
 
@@ -414,9 +493,7 @@ elif section == "6 · Evaluation":
     with st.expander("Full classification report"):
         st.text(classification_report(y_test, pred, target_names=encoder.classes_))
 
-# ============================================================================
-# 7. LIVE DEMO
-# ============================================================================
+# Live demo
 elif section == "7 · Live Demo":
     banner("demo", "Deployment Lead", "Try the Crop Recommender")
 
@@ -442,7 +519,7 @@ elif section == "7 · Live Demo":
         ph = st.slider("Soil pH", float(d["ph"]["min"]), float(d["ph"]["max"]), float(d["ph"]["mean"]))
     rain = st.slider("Rainfall (mm)", float(d["rainfall"]["min"]), float(d["rainfall"]["max"]), float(d["rainfall"]["mean"]))
 
-    if st.button("🌾 Recommend a crop", type="primary"):
+    if st.button("Get recommendation", type="primary"):
         npk_sum = n + p + k
         npk_ratio = n / (p + k + 1)
         row = pd.DataFrame([{
@@ -455,13 +532,19 @@ elif section == "7 · Live Demo":
         pred_idx = model.predict(scaled)[0]
         crop = encoder.inverse_transform([pred_idx])[0]
 
-        st.success(f"### Recommended crop: **{crop.capitalize()}**")
+        st.markdown(
+            f"""<div class="insight-box" style="border-left-color:{COLORS['deepteal']}">
+            <span class="insight-label">Recommended crop</span>
+            <p style="font-family:'Fraunces',serif;font-size:1.4rem;color:#232B21;">
+            {crop.capitalize()}</p></div>""",
+            unsafe_allow_html=True,
+        )
 
         if hasattr(model, "predict_proba"):
             proba = model.predict_proba(scaled)[0]
             top5 = pd.Series(proba, index=encoder.classes_).sort_values(ascending=False).head(5)
             fig, ax = plt.subplots(figsize=(7, 3))
-            top5.iloc[::-1].plot(kind="barh", ax=ax, color="#1e6091")
+            top5.iloc[::-1].plot(kind="barh", ax=ax, color=COLORS["deepteal"])
             ax.set_xlabel("Predicted probability")
             ax.set_title("Top 5 candidate crops")
             st.pyplot(fig)
